@@ -16,34 +16,31 @@
 
 package com.firebase.jobdispatcher;
 
-import android.content.Intent;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.IBinder;
-
-import com.google.android.gms.gcm.PendingCallback;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.robolectric.RobolectricGradleTestRunner;
-import org.robolectric.annotation.Config;
-
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-@RunWith(RobolectricGradleTestRunner.class)
-@Config(constants = BuildConfig.class, sdk = 21)
-public class JobServiceTest {
+import android.content.Intent;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.IBinder;
+import android.os.Parcel;
+import com.google.android.gms.gcm.PendingCallback;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
-    public static CountDownLatch countDownLatch;
+@RunWith(RobolectricTestRunner.class)
+@Config(constants = BuildConfig.class, manifest = Config.NONE, sdk = 23)
+public class JobServiceTest {
+    private static CountDownLatch countDownLatch;
 
     @Before
     public void setUp() throws Exception {}
@@ -117,11 +114,15 @@ public class JobServiceTest {
         int startId = 7;
 
         Intent executeJobIntent = new Intent(JobService.ACTION_EXECUTE);
-        executeJobIntent.putExtra("callback", new PendingCallback(mock(IBinder.class)));
+        Parcel p = Parcel.obtain();
+        p.writeStrongBinder(mock(IBinder.class));
+        executeJobIntent.putExtra("callback", new PendingCallback(p));
 
         service.onStartCommand(executeJobIntent, 0, startId);
 
         verify(service).stopSelf(startId);
+
+        p.recycle();
     }
 
     @Test

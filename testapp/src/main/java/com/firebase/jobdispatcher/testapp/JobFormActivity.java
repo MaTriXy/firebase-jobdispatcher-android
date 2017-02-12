@@ -23,12 +23,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatButton;
 import android.util.Log;
 import android.view.View;
-
 import com.firebase.jobdispatcher.Constraint;
 import com.firebase.jobdispatcher.FirebaseJobDispatcher;
+import com.firebase.jobdispatcher.GooglePlayDriver;
 import com.firebase.jobdispatcher.Job.Builder;
 import com.firebase.jobdispatcher.Lifetime;
-import com.firebase.jobdispatcher.GooglePlayDriver;
 import com.firebase.jobdispatcher.Trigger;
 
 public class JobFormActivity extends AppCompatActivity {
@@ -71,7 +70,7 @@ public class JobFormActivity extends AppCompatActivity {
                 .setRecurring(form.recurring.get())
                 .setLifetime(form.persistent.get() ? Lifetime.FOREVER : Lifetime.UNTIL_NEXT_BOOT)
                 .setService(DemoJobService.class)
-                .setTrigger(Trigger.ExecutionWindowTrigger.newInstance(
+                .setTrigger(Trigger.executionWindow(
                     form.getWinStartSeconds(), form.getWinEndSeconds()))
                 .setReplaceCurrent(form.replaceCurrent.get())
                 .setRetryStrategy(jobDispatcher.newRetryStrategy(

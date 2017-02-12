@@ -24,7 +24,6 @@ import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 import android.support.v4.util.SimpleArrayMap;
 import android.util.Log;
-
 import com.firebase.jobdispatcher.JobService.JobResult;
 
 /**
@@ -159,7 +158,7 @@ public final class GooglePlayReceiver extends ExternalReceiver {
             JobCallback callback = map.remove(js.getTag());
             if (callback != null) {
                 Log.i(TAG, "sending jobFinished for " + js.getTag() + " = " + result);
-                callback.jobFinished(result);
+                sendResultSafely(callback, result);
             }
 
             if (map.isEmpty()) {

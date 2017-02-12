@@ -16,6 +16,15 @@
 
 package com.firebase.jobdispatcher;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
@@ -25,38 +34,23 @@ import android.content.pm.ServiceInfo;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
-
+import java.util.Arrays;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
-import java.util.Arrays;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-@RunWith(RobolectricGradleTestRunner.class)
-@Config(constants = BuildConfig.class, sdk = 21)
+@RunWith(RobolectricTestRunner.class)
+@Config(constants = BuildConfig.class, manifest = Config.NONE, sdk = 23)
 public class GooglePlayDriverTest {
-
     @Mock
     public Context mMockContext;
 
     private TestJobDriver mDriver;
-
     private FirebaseJobDispatcher mDispatcher;
 
     @Before
@@ -72,7 +66,7 @@ public class GooglePlayDriverTest {
     @Test
     public void testSchedule_failsWhenPlayServicesIsUnavailable() throws Exception {
         markBackendUnavailable();
-        mockPackageManagerInfoFor(TestJobService.class);
+        mockPackageManagerInfo();
 
         Job job = null;
         try {
@@ -102,7 +96,7 @@ public class GooglePlayDriverTest {
 
     @Test
     public void testSchedule_sendsAppropriateBroadcast() {
-        ArgumentCaptor<Intent> pmQueryIntentCaptor = mockPackageManagerInfoFor(TestJobService.class);
+        ArgumentCaptor<Intent> pmQueryIntentCaptor = mockPackageManagerInfo();
 
         Job job = mDispatcher.newJobBuilder()
             .setConstraints(Constraint.DEVICE_CHARGING)
@@ -136,7 +130,7 @@ public class GooglePlayDriverTest {
             parcelablePendingIntent instanceof PendingIntent);
     }
 
-    private ArgumentCaptor<Intent> mockPackageManagerInfoFor(Class<? extends JobService> serviceClass) {
+    private ArgumentCaptor<Intent> mockPackageManagerInfo() {
         PackageManager packageManager = mock(PackageManager.class);
         when(mMockContext.getPackageManager()).thenReturn(packageManager);
         ArgumentCaptor<Intent> intentArgCaptor = ArgumentCaptor.forClass(Intent.class);
@@ -167,18 +161,6 @@ public class GooglePlayDriverTest {
 
     private void markBackendUnavailable() {
         mDriver.available = false;
-    }
-
-    public final static class TestJobService extends JobService {
-        @Override
-        public boolean onStartJob(JobParameters job) {
-            return false;
-        }
-
-        @Override
-        public boolean onStopJob(JobParameters job) {
-            return false;
-        }
     }
 
     public final static class TestJobDriver implements Driver {

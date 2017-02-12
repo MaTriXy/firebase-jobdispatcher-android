@@ -16,19 +16,6 @@
 
 package com.firebase.jobdispatcher;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.robolectric.RobolectricGradleTestRunner;
-import org.robolectric.annotation.Config;
-
-import java.util.Collections;
-import java.util.List;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -36,20 +23,36 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@RunWith(RobolectricGradleTestRunner.class)
-@Config(sdk = 21, constants = BuildConfig.class)
-public class ValidationEnforcerTest {
+import java.util.Collections;
+import java.util.List;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
-    public static final List<String> ERROR_LIST = Collections.singletonList("error: foo");
+@RunWith(RobolectricTestRunner.class)
+@Config(constants = BuildConfig.class, manifest = Config.NONE, sdk = 23)
+public class ValidationEnforcerTest {
+    private static final List<String> ERROR_LIST = Collections.singletonList("error: foo");
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-    private ValidationEnforcer mEnforcer;
+
     @Mock
     private JobValidator mValidator;
+
     @Mock
     private JobParameters mMockJobParameters;
+
     @Mock
     private JobTrigger mMockTrigger;
+
+    private ValidationEnforcer mEnforcer;
     private RetryStrategy mRetryStrategy = RetryStrategy.DEFAULT_EXPONENTIAL;
 
     @Before

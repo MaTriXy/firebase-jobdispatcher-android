@@ -16,28 +16,26 @@
 
 package com.firebase.jobdispatcher;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.RemoteException;
-
 import com.google.android.gms.gcm.INetworkTaskCallback;
 import com.google.android.gms.gcm.PendingCallback;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
-@RunWith(RobolectricGradleTestRunner.class)
-@Config(constants = BuildConfig.class, sdk = 21)
+@RunWith(RobolectricTestRunner.class)
+@Config(constants = BuildConfig.class, manifest = Config.NONE, sdk = 23)
 public final class GooglePlayCallbackExtractorTest {
     @Mock
     private IBinder mBinder;
@@ -53,9 +51,7 @@ public final class GooglePlayCallbackExtractorTest {
 
     @Test
     public void testExtractCallback_nullBundle() {
-        Bundle nullBundle = null;
-
-        assertNull(mExtractor.extractCallback(nullBundle));
+        assertNull(mExtractor.extractCallback(null));
     }
 
     @Test
@@ -74,24 +70,30 @@ public final class GooglePlayCallbackExtractorTest {
 
     @Test
     public void testExtractCallback_goodParcelable() {
-        PendingCallback pcb = new PendingCallback(new NopCallback());
+        Parcel container = Parcel.obtain();
+        container.writeStrongBinder(new NopCallback());
+        PendingCallback pcb = new PendingCallback(container);
 
         Bundle validBundle = new Bundle();
         validBundle.putParcelable("callback", pcb);
 
         assertNotNull(mExtractor.extractCallback(validBundle));
+
+        container.recycle();
     }
 
     private final static class BadParcelable implements Parcelable {
         public static final Parcelable.Creator<BadParcelable> CREATOR
             = new Parcelable.Creator<BadParcelable>() {
-            public BadParcelable createFromParcel(Parcel in) {
-                return new BadParcelable(in);
-            }
+                @Override
+                public BadParcelable createFromParcel(Parcel in) {
+                    return new BadParcelable(in);
+                }
 
-            public BadParcelable[] newArray(int size) {
-                return new BadParcelable[size];
-            }
+                @Override
+                public BadParcelable[] newArray(int size) {
+                    return new BadParcelable[size];
+                }
         };
         private final int mNum;
 
@@ -103,10 +105,12 @@ public final class GooglePlayCallbackExtractorTest {
             mNum = in.readInt();
         }
 
+        @Override
         public int describeContents() {
             return 0;
         }
 
+        @Override
         public void writeToParcel(Parcel dst, int flags) {
             dst.writeInt(mNum);
         }

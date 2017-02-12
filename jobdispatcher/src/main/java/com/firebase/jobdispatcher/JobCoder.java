@@ -16,12 +16,12 @@
 
 package com.firebase.jobdispatcher;
 
+import static com.firebase.jobdispatcher.Constraint.compact;
+import static com.firebase.jobdispatcher.Constraint.uncompact;
+
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-
-import static com.firebase.jobdispatcher.Constraint.compact;
-import static com.firebase.jobdispatcher.Constraint.uncompact;
 
 /**
  * JobCoder is a tool to encode and decode JobSpecs from Bundles.
@@ -49,6 +49,8 @@ import static com.firebase.jobdispatcher.Constraint.uncompact;
             jobParameters.getLifetime());
         data.putBoolean(prefix + BundleProtocol.PACKED_PARAM_RECURRING,
             jobParameters.isRecurring());
+        data.putBoolean(prefix + BundleProtocol.PACKED_PARAM_REPLACE_CURRENT,
+            jobParameters.shouldReplaceCurrent());
         data.putString(prefix + BundleProtocol.PACKED_PARAM_TAG,
             jobParameters.getTag());
         data.putString(prefix + BundleProtocol.PACKED_PARAM_SERVICE,

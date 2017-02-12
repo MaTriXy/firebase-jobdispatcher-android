@@ -19,9 +19,7 @@ package com.firebase.jobdispatcher;
 import android.os.Bundle;
 import android.support.annotation.IntDef;
 import android.support.annotation.VisibleForTesting;
-
 import com.firebase.jobdispatcher.RetryStrategy.RetryPolicy;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
@@ -179,6 +177,5 @@ import java.lang.annotation.RetentionPolicy;
 
     @IntDef({LEGACY_NETWORK_ANY, LEGACY_NETWORK_CONNECTED, LEGACY_NETWORK_UNMETERED})
     @Retention(RetentionPolicy.SOURCE)
-    @interface LegacyNetworkConstant {
-    }
+    private @interface LegacyNetworkConstant {}
 }

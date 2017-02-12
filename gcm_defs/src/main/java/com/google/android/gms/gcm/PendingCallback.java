@@ -19,12 +19,14 @@ package com.google.android.gms.gcm;
 import android.os.IBinder;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.support.annotation.Keep;
 
 /**
  * Parcelable class to wrap the binder we send to the client over IPC.
  *
  * @hide
  */
+@Keep
 public final class PendingCallback implements Parcelable {
     public static final Creator<PendingCallback> CREATOR = new Creator<PendingCallback>() {
         @Override
@@ -41,10 +43,6 @@ public final class PendingCallback implements Parcelable {
 
     public PendingCallback(Parcel in) {
         mBinder = in.readStrongBinder();
-    }
-
-    public PendingCallback(IBinder binder) {
-        mBinder = binder;
     }
 
     public IBinder getIBinder() {

@@ -16,32 +16,28 @@
 
 package com.firebase.jobdispatcher;
 
-import android.os.Bundle;
-
-import com.firebase.jobdispatcher.Job.Builder;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.robolectric.RobolectricGradleTestRunner;
-import org.robolectric.annotation.Config;
-
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-@RunWith(RobolectricGradleTestRunner.class)
-@Config(sdk = 21, constants = BuildConfig.class)
+import android.os.Bundle;
+import com.firebase.jobdispatcher.Job.Builder;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
+
+@RunWith(RobolectricTestRunner.class)
+@Config(constants = BuildConfig.class, manifest = Config.NONE, sdk = 23)
 public class JobCoderTest {
-
     private final JobCoder mCoder = new JobCoder();
-
     private Builder mBuilder;
 
     private static Builder setValidBuilderDefaults(Builder mBuilder) {
         return mBuilder
             .setTag("tag")
             .setTrigger(Trigger.NOW)
-            .setService(MyTestJobService.class)
+            .setService(TestJobService.class)
             .setRetryStrategy(RetryStrategy.DEFAULT_EXPONENTIAL);
     }
 

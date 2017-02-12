@@ -2,12 +2,10 @@ package com.firebase.jobdispatcher.testapp;
 
 import android.databinding.BaseObservable;
 import android.databinding.Bindable;
-import android.databinding.BindingAdapter;
 import android.databinding.ObservableBoolean;
 import android.databinding.ObservableField;
 import android.databinding.ObservableInt;
-import android.widget.EditText;
-
+import android.text.TextUtils;
 import com.firebase.jobdispatcher.RetryStrategy;
 
 /** POJO that represents the job form (via databinding). */
@@ -40,11 +38,11 @@ public class JobForm extends BaseObservable {
     }
 
     public void setWinStartSecondsStr(String in) {
-        winStartSeconds = Integer.valueOf(in, 10);
+        winStartSeconds = convertToInt(in);
     }
 
     public void setWinEndSecondsStr(String in) {
-        winEndSeconds = Integer.valueOf(in, 10);
+        winEndSeconds = convertToInt(in);
     }
 
     @Bindable
@@ -81,4 +79,7 @@ public class JobForm extends BaseObservable {
         return maximumBackoffSeconds;
     }
 
+    private int convertToInt(String in) {
+        return !TextUtils.isEmpty(in) ? Integer.valueOf(in, 10) : 0;
+    }
 }

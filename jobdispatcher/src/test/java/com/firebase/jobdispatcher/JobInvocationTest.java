@@ -16,13 +16,17 @@
 
 package com.firebase.jobdispatcher;
 
-import android.support.annotation.NonNull;
-
-import org.junit.Test;
-
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import android.support.annotation.NonNull;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
+
+@RunWith(RobolectricTestRunner.class)
+@Config(constants = BuildConfig.class, manifest = Config.NONE, sdk = 23)
 public class JobInvocationTest {
 
     @SuppressWarnings("ConstantConditions")

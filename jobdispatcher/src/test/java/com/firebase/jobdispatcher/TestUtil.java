@@ -16,28 +16,24 @@
 
 package com.firebase.jobdispatcher;
 
-import android.os.Bundle;
-import android.os.Looper;
-import android.support.annotation.NonNull;
-
-import com.firebase.jobdispatcher.Job.Builder;
-
-import org.robolectric.internal.ShadowExtractor;
-import org.robolectric.shadows.ShadowLooper;
-
-import java.lang.reflect.Constructor;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.robolectric.Shadows.shadowOf;
+
+import android.os.Bundle;
+import android.os.Looper;
+import android.support.annotation.NonNull;
+import com.firebase.jobdispatcher.Job.Builder;
+import java.lang.reflect.Constructor;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Provides common utilities helpful for testing.
@@ -57,8 +53,8 @@ public class TestUtil {
     };
 
     @SuppressWarnings("unchecked")
-    private static final Class<MyTestJobService>[] SERVICE_COMBINATIONS =
-        new Class[]{MyTestJobService.class};
+    private static final List<Class<TestJobService>> SERVICE_COMBINATIONS =
+        Arrays.asList(TestJobService.class);
 
     private static final RetryStrategy[] RETRY_STRATEGY_COMBINATIONS = {
         RetryStrategy.DEFAULT_LINEAR,
@@ -81,7 +77,7 @@ public class TestUtil {
     static List<List<Integer>> getAllConstraintCombinations() {
         List<List<Integer>> combos = new LinkedList<>();
 
-        combos.add(Collections.EMPTY_LIST);
+        combos.add(Collections.<Integer>emptyList());
         for (Integer cur : Constraint.ALL_CONSTRAINTS) {
             for (int l = combos.size() - 1; l >= 0; l--) {
                 List<Integer> oldCombo = combos.get(l);
@@ -111,22 +107,25 @@ public class TestUtil {
         for (String tag : TAG_COMBINATIONS) {
             for (List<Integer> constraintList : getAllConstraintCombinations()) {
                 for (boolean recurring : new boolean[]{true, false}) {
-                    for (int lifetime : LIFETIME_COMBINATIONS) {
-                        for (JobTrigger trigger : TRIGGER_COMBINATIONS) {
-                            for (Class<MyTestJobService> service : SERVICE_COMBINATIONS) {
-                                for (Bundle extras : getBundleCombinations()) {
-                                    for (RetryStrategy rs : RETRY_STRATEGY_COMBINATIONS) {
-                                        //noinspection WrongConstant
-                                        jobs.add(builder
-                                            .setTag(tag)
-                                            .setRecurring(recurring)
-                                            .setConstraints(toIntArray(constraintList))
-                                            .setLifetime(lifetime)
-                                            .setTrigger(trigger)
-                                            .setService(service)
-                                            .setExtras(extras)
-                                            .setRetryStrategy(rs)
-                                            .build());
+                    for (boolean replaceCurrent : new boolean[]{true, false}) {
+                        for (int lifetime : LIFETIME_COMBINATIONS) {
+                            for (JobTrigger trigger : TRIGGER_COMBINATIONS) {
+                                for (Class<TestJobService> service : SERVICE_COMBINATIONS) {
+                                    for (Bundle extras : getBundleCombinations()) {
+                                        for (RetryStrategy rs : RETRY_STRATEGY_COMBINATIONS) {
+                                            //noinspection WrongConstant
+                                            jobs.add(builder
+                                                .setTag(tag)
+                                                .setRecurring(recurring)
+                                                .setReplaceCurrent(replaceCurrent)
+                                                .setConstraints(toIntArray(constraintList))
+                                                .setLifetime(lifetime)
+                                                .setTrigger(trigger)
+                                                .setService(service)
+                                                .setExtras(extras)
+                                                .setRetryStrategy(rs)
+                                                .build());
+                                        }
                                     }
                                 }
                             }
@@ -158,6 +157,7 @@ public class TestUtil {
         assertNotNull("output", output);
 
         assertEquals("isRecurring()", input.isRecurring(), output.isRecurring());
+        assertEquals("shouldReplaceCurrent()", input.shouldReplaceCurrent(), output.shouldReplaceCurrent());
         assertEquals("getLifetime()", input.getLifetime(), output.getLifetime());
         assertEquals("getTag()", input.getTag(), output.getTag());
         assertEquals("getService()", input.getService(), output.getService());
@@ -168,7 +168,6 @@ public class TestUtil {
         assertTriggersEqual(input.getTrigger(), output.getTrigger());
         assertBundlesEqual(input.getExtras(), output.getExtras());
         assertRetryStrategiesEqual(input.getRetryStrategy(), output.getRetryStrategy());
-
     }
 
     static void assertRetryStrategiesEqual(RetryStrategy in, RetryStrategy out) {
@@ -219,15 +218,8 @@ public class TestUtil {
         return new Builder(new ValidationEnforcer(new NoopJobValidator()));
     }
 
-    /**
-     * Advances the provided Looper.
-     * <p/>
-     * Using {@link org.robolectric.Shadows#shadowOf(Looper)} fails due to Robolectric's unusual
-     * dependency on AndroidHttpClient.
-     * <p/>
-     * See: https://github.com/robolectric/robolectric/issues/1862#issuecomment-159765848
-     */
+    /** Advances the provided Looper. */
     static void advanceLooper(Looper looper) {
-        ((ShadowLooper) ShadowExtractor.extract(looper)).getScheduler().advanceBy(100);
+        shadowOf(looper).getScheduler().advanceBy(100);
     }
 }
