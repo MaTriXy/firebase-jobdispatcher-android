@@ -16,39 +16,72 @@
 
 package com.firebase.jobdispatcher;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import android.support.annotation.NonNull;
+import android.os.Bundle;
+import com.firebase.jobdispatcher.JobInvocation.Builder;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+/** Tests for the {@link JobInvocation} class. */
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = BuildConfig.class, manifest = Config.NONE, sdk = 23)
+@Config(manifest = Config.NONE, sdk = 23)
 public class JobInvocationTest {
+  private Builder builder;
 
-    @SuppressWarnings("ConstantConditions")
-    @Test
-    public void testShouldReplaceCurrent() throws Exception {
-        assertTrue("Expected shouldReplaceCurrent() to return value passed in constructor",
-            createJobInvocation(true).shouldReplaceCurrent());
-        assertFalse("Expected shouldReplaceCurrent() to return value passed in constructor",
-            createJobInvocation(false).shouldReplaceCurrent());
-    }
+  @Before
+  public void setUp() {
+    builder =
+        new Builder()
+            .setTag("tag")
+            .setService(TestJobService.class.getName())
+            .setTrigger(Trigger.NOW);
+  }
 
-    @NonNull
-    private JobInvocation createJobInvocation(boolean replaceCurrent) {
-        return new JobInvocation(
-            null,
-            null,
-            null,
-            null,
-            false,
-            Lifetime.FOREVER,
-            null,
-            null,
-            replaceCurrent);
-    }
+  @SuppressWarnings("ConstantConditions")
+  @Test
+  public void testShouldReplaceCurrent() throws Exception {
+    assertTrue(
+        "Expected shouldReplaceCurrent() to return value passed in constructor",
+        builder.setReplaceCurrent(true).build().shouldReplaceCurrent());
+    assertFalse(
+        "Expected shouldReplaceCurrent() to return value passed in constructor",
+        builder.setReplaceCurrent(false).build().shouldReplaceCurrent());
+  }
+
+  @Test
+  public void extras() throws Exception {
+    assertNotNull(builder.build().getExtras());
+
+    Bundle bundle = new Bundle();
+    bundle.putLong("test", 1L);
+    Bundle extras = builder.addExtras(bundle).build().getExtras();
+    assertEquals(1, extras.size());
+    assertEquals(1L, extras.getLong("test"));
+  }
+
+  @Test
+  public void contract_hashCode_equals() {
+    JobInvocation jobInvocation = builder.build();
+    assertEquals(jobInvocation, builder.build());
+    assertEquals(jobInvocation.hashCode(), builder.build().hashCode());
+    JobInvocation jobInvocationNew = builder.setTag("new").build();
+    assertNotEquals(jobInvocation, jobInvocationNew);
+    assertNotEquals(jobInvocation.hashCode(), jobInvocationNew.hashCode());
+  }
+
+  @Test
+  public void contract_hashCode_equals_triggerShouldBeIgnored() {
+    JobInvocation jobInvocation = builder.build();
+    JobInvocation periodic = builder.setTrigger(Trigger.executionWindow(0, 1)).build();
+    assertEquals(jobInvocation, periodic);
+    assertEquals(jobInvocation.hashCode(), periodic.hashCode());
+  }
 }

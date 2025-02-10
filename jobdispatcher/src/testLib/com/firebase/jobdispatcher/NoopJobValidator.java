@@ -14,15 +14,30 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// Old path for backcompat reasons
-package com.google.android.gms.gcm;
+package com.firebase.jobdispatcher;
 
-/**
- * Provide a callback for a {@link JobService} to notify the FirebaseJobDispatcher that
- * it's finished.
- *
- * @hide
- */
-interface INetworkTaskCallback {
-    void taskFinished(int result) = 1;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import java.util.List;
+
+/** A very simple Validator that thinks that everything is ok. Used for testing. */
+class NoopJobValidator implements JobValidator {
+
+  @Nullable
+  @Override
+  public List<String> validate(@NonNull JobParameters job) {
+    return null;
+  }
+
+  @Nullable
+  @Override
+  public List<String> validate(@NonNull JobTrigger trigger) {
+    return null;
+  }
+
+  @Nullable
+  @Override
+  public List<String> validate(@NonNull RetryStrategy retryStrategy) {
+    return null;
+  }
 }

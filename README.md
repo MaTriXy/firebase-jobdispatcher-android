@@ -1,11 +1,58 @@
-# Firebase JobDispatcher [![Build Status][ci-badge]][ci-link]
+# Firebase JobDispatcher
 
 [ci-badge]: https://travis-ci.org/firebase/firebase-jobdispatcher-android.svg?branch=master
 [ci-link]: https://travis-ci.org/firebase/firebase-jobdispatcher-android
 
+## Status: Archived
+This repository has been archived and is no longer maintained.
+
+![status: inactive](https://img.shields.io/badge/status-inactive-red.svg)
+
+---
+
+## Update: April 2019
+
+**Last year, we announced Android Jetpack
+[WorkManager](https://developer.android.com/topic/libraries/architecture/workmanager/).
+WorkManager, the new job management system in Jetpack, incorporates the features
+of Firebase Job Dispatcher (FJD) and Android’s
+[JobScheduler](https://developer.android.com/reference/android/app/job/JobScheduler)
+to provide a consistent job scheduling service back to api level 14 while
+leveraging JobScheduler on newer devices. WorkManager works with or without
+Google Play Services, which is something FJD cannot do. WorkManager was first
+released to alpha in May 2018 and then went thru extensive iteration and
+improvement based on developer feedback including 10 alphas; it moved to beta on
+Dec 19, 2018, and was released to
+[stable](https://developer.android.com/jetpack/androidx/releases/work#1.0.0) on
+Mar 5, 2019. One thing the team has been discussing at some length is whether it
+would be better for developers in the long run if we create one holistic
+solution via WorkManager; where we can pool all of our efforts and also give
+developers a single unified recommended path?**
+
+**After careful evaluation, the team has decided to focus all of our efforts on
+WorkManager and to deprecate Firebase Job Dispatcher. We have modified our plans
+in direct response to developer feedback in order to make this as easy for you
+as possible. We know that managing background work is a critical part of your
+app and these changes impact you. We want to support you through this migration
+as much as we can by giving you as much advance notice as possible to make these
+changes. Firebase Job Dispatcher will be archived in github in about 1 year, on
+Apr 7, 2020. Apps should migrate to WorkManager or an alternative job management
+system before this date.**
+
+**We’ve created a detailed
+[migration guide](https://developer.android.com/topic/libraries/architecture/workmanager/migrating-fb)
+to assist you in the transition to WorkManager. After Apr 7, 2020, this github
+repository will be archived and support for FJD customer issues will stop.
+Additionally, FJD will stop working once your app starts targeting an Android
+version after Android Q.**
+
+**We are continuing to invest in and add new features to WorkManager and welcome
+any feedback or feature
+[requests](https://issuetracker.google.com/issues/new?component=409906&template=1094197).**
+
 The Firebase JobDispatcher is a library for scheduling background jobs in your
 Android app. It provides a [JobScheduler][]-compatible API that works on all
-recent versions of Android (API level 9+) that have Google Play services
+recent versions of Android (API level 14+) that have Google Play services
 installed.
 
 ## Overview
@@ -30,13 +77,13 @@ active network connection, only that the connection was recently changed.
 
 In recognition of these issues, the Android framework team created the
 [JobScheduler][]. This provides developers a simple way of specifying runtime
-constraints on their jobs. Available constraints include [network
-type][js-network-type], [charging state][js-charging-state], and [idle
-state][js-idle-state].
+constraints on their jobs. Available constraints include
+[network type][js-network-type], [charging state][js-charging-state], and
+[idle state][js-idle-state].
 
-This library uses the scheduling engine inside [Google Play
-services](formerly the [GCM Network Manager][nts] component) to provide a
-backwards compatible (back to Gingerbread) [JobScheduler][]-like API.
+This library uses the scheduling engine inside
+[Google Play services](formerly the [GCM Network Manager][nts] component) to
+provide a backwards compatible (back to Gingerbread) [JobScheduler][]-like API.
 
 This I/O presentation has more information on why background services can be
 harmful and what you can do about them:
@@ -61,37 +108,28 @@ Play services installed.
 
 ### Comparison to other libraries
 
-Library                    | Minimum API | Requires Google Play   | Service API<sup>[1](#fn1)</sup> | Custom retry strategies
--------------------------- | ----------- | ---------------------- | ------------------------------- | -----------------------
-Framework [JobScheduler][] | 21          | No                     | JobScheduler                    | Yes
-Firebase JobDispatcher     | 9           | Yes                    | JobScheduler                    | Yes
-[evernote/android-job][]   | 14          | No<sup>[2](#fn2)</sup> | Custom                          | Yes
+Library                                     | Minimum API | Requires Google Play   | Service API<sup>[1](#fn1)</sup> | Custom retry strategies
+------------------------------------------- | ----------- | ---------------------- | ------------------------------- | -----------------------
+Framework [JobScheduler][]                  | 21          | No                     | JobScheduler                    | Yes
+Firebase JobDispatcher                      | 14          | Yes                    | JobScheduler                    | Yes
+[evernote/android-job][]                    | 14          | No<sup>[2](#fn2)</sup> | Custom                          | Yes
+Android [WorkManager][]<sup>[3](#fn3)</sup> | 14          | No<sup>[2](#fn2)</sup> | Custom                          | Yes
 
-<a name="fn1">1</a>: Refers to the methods that need to be implemented in the
+<sup><a name="fn1">1</a></sup> Refers to the methods that need to be implemented in the
 Service subclass.<br>
-<a name="fn2">2</a>: Uses AlarmManager to support API levels <= 21 if Google
+<sup><a name="fn2">2</a></sup> Uses AlarmManager or JobScheduler to support API levels <= 21 if Google
 Play services is unavailable.<br>
+<sup><a name="fn3">3</a></sup> Currently in alpha phase, soon to graduate to beta.</br>
 
 ## Getting started
 
 ### Installation
 
-If you **don't** have a dependency on
-[`com.google.android.gms:play-services-gcm`][gcm], add the following to your
-`build.gradle`'s dependencies section:
+Add the following to your `build.gradle`'s dependencies section:
 
+```groovy
+implementation 'com.firebase:firebase-jobdispatcher:0.8.6'
 ```
-compile 'com.firebase:firebase-jobdispatcher:0.5.2'
-```
-
-Otherwise add the following:
-
-```
-compile 'com.firebase:firebase-jobdispatcher-with-gcm-dep:0.5.2'
-```
-
-NOTE: These variants are a temporary requirement. Work is ongoing to consolidate
-them into the same bulid.
 
 ### Usage
 
@@ -212,7 +250,7 @@ See the [CONTRIBUTING.md](CONTRIBUTING.md) file.
 This library is actively supported by Google engineers. If you encounter any
 problems, please create an issue in our [tracker][].
 
-# License
+## License
 
 Apache, see the [LICENSE](LICENSE) file.
 
@@ -224,3 +262,4 @@ Apache, see the [LICENSE](LICENSE) file.
 [JobScheduler]: https://developer.android.com/reference/android/app/job/JobScheduler.html
 [Google Play services]: https://developers.google.com/android/guides/overview
 [evernote/android-job]: https://github.com/evernote/android-job
+[WorkManager]: https://developer.android.com/topic/libraries/architecture/workmanager/

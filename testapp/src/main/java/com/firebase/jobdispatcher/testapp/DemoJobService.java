@@ -17,27 +17,29 @@
 package com.firebase.jobdispatcher.testapp;
 
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import com.firebase.jobdispatcher.JobParameters;
 import com.firebase.jobdispatcher.JobService;
 
+/** A very simple JobService that merely stores its result and immediately finishes. */
 public class DemoJobService extends JobService {
-    @Override
-    public boolean onStartJob(JobParameters job) {
-        Log.i("FJD.DemoJobService", "onStartJob called");
+  @Override
+  public boolean onStartJob(@NonNull JobParameters job) {
+    Log.i(JobFormActivity.TAG, "onStartJob called");
 
-        Bundle extras = job.getExtras();
-        assert extras != null;
+    Bundle extras = job.getExtras();
+    assert extras != null;
 
-        int result = extras.getInt("return");
+    int result = extras.getInt("return");
 
-        CentralContainer.getStore(getApplicationContext()).recordResult(job, result);
+    CentralContainer.getStore(getApplicationContext()).recordResult(job, result);
 
-        return false; // No more work to do
-    }
+    return false; // No more work to do
+  }
 
-    @Override
-    public boolean onStopJob(JobParameters job) {
-        return false; // No more work to do
-    }
+  @Override
+  public boolean onStopJob(@NonNull JobParameters job) {
+    return false; // No more work to do
+  }
 }

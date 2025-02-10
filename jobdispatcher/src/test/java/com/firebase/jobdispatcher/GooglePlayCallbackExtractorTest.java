@@ -16,6 +16,7 @@
 
 package com.firebase.jobdispatcher;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -23,9 +24,14 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.os.RemoteException;
-import com.google.android.gms.gcm.INetworkTaskCallback;
-import com.google.android.gms.gcm.PendingCallback;
+import android.util.Pair;
+import com.firebase.jobdispatcher.GooglePlayCallbackExtractorTest.ExtendedShadowParcel;
+import com.firebase.jobdispatcher.TestUtil.InspectableBinder;
+import com.firebase.jobdispatcher.TestUtil.TransactionArguments;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,93 +39,155 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
+import org.robolectric.annotation.RealObject;
+import org.robolectric.shadows.ShadowParcel;
 
+/** Tests for the {@link GooglePlayCallbackExtractor} class. */
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = BuildConfig.class, manifest = Config.NONE, sdk = 23)
+@Config(
+  manifest = Config.NONE,
+  sdk = 23,
+  shadows = {ExtendedShadowParcel.class}
+)
 public final class GooglePlayCallbackExtractorTest {
-    @Mock
-    private IBinder mBinder;
+  /**
+   * ShadowParcel doesn't correctly handle {@link Parcel#writeStrongBinder(IBinder)} or {@link
+   * Parcel#readStrongBinder()}, so we shim a simple implementation that uses an in-memory map to
+   * read and write Binder objects.
+   */
+  @Implements(Parcel.class)
+  public static class ExtendedShadowParcel extends ShadowParcel {
+    @RealObject private Parcel realObject;
 
-    private GooglePlayCallbackExtractor mExtractor;
+    // Map each IBinder to an integer, and use the super's int-writing capability to fake Binder
+    // read/writes.
+    private final AtomicInteger nextBinderId = new AtomicInteger(1);
+    private final Map<Integer, IBinder> binderMap =
+        Collections.synchronizedMap(new HashMap<Integer, IBinder>());
 
-    @Before
-    public void setUp() {
-        MockitoAnnotations.initMocks(this);
-
-        mExtractor = new GooglePlayCallbackExtractor();
+    @Implementation
+    public void writeStrongBinder(IBinder binder) {
+      int id = nextBinderId.getAndIncrement();
+      binderMap.put(id, binder);
+      realObject.writeInt(id);
     }
 
-    @Test
-    public void testExtractCallback_nullBundle() {
-        assertNull(mExtractor.extractCallback(null));
+    @Implementation
+    public IBinder readStrongBinder() {
+      return binderMap.get(realObject.readInt());
     }
+  }
 
-    @Test
-    public void testExtractCallback_nullParcelable() {
-        Bundle emptyBundle = new Bundle();
-        assertNull(mExtractor.extractCallback(emptyBundle));
-    }
+  @Mock private IBinder binder;
 
-    @Test
-    public void testExtractCallback_badParcelable() {
-        Bundle misconfiguredBundle = new Bundle();
-        misconfiguredBundle.putParcelable("callback", new BadParcelable(1));
+  private GooglePlayCallbackExtractor extractor;
 
-        assertNull(mExtractor.extractCallback(misconfiguredBundle));
-    }
+  @Before
+  public void setUp() {
+    MockitoAnnotations.initMocks(this);
 
-    @Test
-    public void testExtractCallback_goodParcelable() {
-        Parcel container = Parcel.obtain();
-        container.writeStrongBinder(new NopCallback());
-        PendingCallback pcb = new PendingCallback(container);
+    extractor = new GooglePlayCallbackExtractor();
+  }
 
-        Bundle validBundle = new Bundle();
-        validBundle.putParcelable("callback", pcb);
+  @Test
+  public void testExtractCallback_nullBundle() {
+    assertNull(extractor.extractCallback(null));
+  }
 
-        assertNotNull(mExtractor.extractCallback(validBundle));
+  @Test
+  public void testExtractCallback_nullParcelable() {
+    Bundle emptyBundle = new Bundle();
+    assertNull(extractCallback(emptyBundle));
+  }
 
-        container.recycle();
-    }
+  @Test
+  public void testExtractCallback_badParcelable() {
+    Bundle misconfiguredBundle = new Bundle();
+    misconfiguredBundle.putParcelable("callback", new BadParcelable(1));
 
-    private final static class BadParcelable implements Parcelable {
-        public static final Parcelable.Creator<BadParcelable> CREATOR
-            = new Parcelable.Creator<BadParcelable>() {
-                @Override
-                public BadParcelable createFromParcel(Parcel in) {
-                    return new BadParcelable(in);
-                }
+    assertNull(extractCallback(misconfiguredBundle));
+  }
 
-                @Override
-                public BadParcelable[] newArray(int size) {
-                    return new BadParcelable[size];
-                }
+  @Test
+  public void testExtractCallback_goodParcelable() {
+    InspectableBinder binder = new InspectableBinder();
+    Bundle validBundle = new Bundle();
+    validBundle.putParcelable("callback", binder.toPendingCallback());
+
+    Pair<JobCallback, Bundle> extraction = extractCallback(validBundle);
+    assertNotNull(extraction);
+    assertEquals(
+        "should have stripped the 'callback' entry from the extracted bundle",
+        0,
+        extraction.second.keySet().size());
+    extraction.first.jobFinished(JobService.RESULT_SUCCESS);
+
+    // Check our homemade Binder is doing the right things:
+    TransactionArguments args = binder.getArguments().get(0);
+    // Should have set the transaction code:
+    assertEquals("transaction code", IBinder.FIRST_CALL_TRANSACTION + 1, args.code);
+
+    // strong mode bit
+    args.data.readInt();
+    // interface token
+    assertEquals("com.google.android.gms.gcm.INetworkTaskCallback", args.data.readString());
+    // result
+    assertEquals("result", JobService.RESULT_SUCCESS, args.data.readInt());
+  }
+
+  @Test
+  public void testExtractCallback_extraMapValues() {
+    Bundle validBundle = new Bundle();
+    validBundle.putString("foo", "bar");
+    validBundle.putInt("bar", 3);
+    validBundle.putParcelable("parcelable", new Bundle());
+    validBundle.putParcelable("callback", new InspectableBinder().toPendingCallback());
+
+    Pair<JobCallback, Bundle> extraction = extractCallback(validBundle);
+    assertNotNull(extraction);
+    assertEquals(
+        "should have stripped the 'callback' entry from the extracted bundle",
+        3,
+        extraction.second.keySet().size());
+  }
+
+  private Pair<JobCallback, Bundle> extractCallback(Bundle bundle) {
+    return extractor.extractCallback(bundle);
+  }
+
+  private static final class BadParcelable implements Parcelable {
+    public static final Parcelable.Creator<BadParcelable> CREATOR =
+        new Parcelable.Creator<BadParcelable>() {
+          @Override
+          public BadParcelable createFromParcel(Parcel in) {
+            return new BadParcelable(in);
+          }
+
+          @Override
+          public BadParcelable[] newArray(int size) {
+            return new BadParcelable[size];
+          }
         };
-        private final int mNum;
+    private final int num;
 
-        public BadParcelable(int i) {
-            mNum = i;
-        }
-
-        private BadParcelable(Parcel in) {
-            mNum = in.readInt();
-        }
-
-        @Override
-        public int describeContents() {
-            return 0;
-        }
-
-        @Override
-        public void writeToParcel(Parcel dst, int flags) {
-            dst.writeInt(mNum);
-        }
+    public BadParcelable(int i) {
+      num = i;
     }
 
-    public final static class NopCallback extends INetworkTaskCallback.Stub {
-        @Override
-        public void taskFinished(int result) throws RemoteException {
-            // nop
-        }
+    private BadParcelable(Parcel in) {
+      num = in.readInt();
     }
+
+    @Override
+    public int describeContents() {
+      return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dst, int flags) {
+      dst.writeInt(num);
+    }
+  }
 }

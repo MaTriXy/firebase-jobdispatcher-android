@@ -26,317 +26,310 @@ import com.firebase.jobdispatcher.Constraint.JobConstraint;
  * constraints.
  */
 public final class Job implements JobParameters {
-    private final String mService;
-    private final String mTag;
-    private final JobTrigger mTrigger;
-    private final RetryStrategy mRetryStrategy;
-    private final int mLifetime;
-    private final boolean mRecurring;
-    private final int[] mConstraints;
-    private final boolean mReplaceCurrent;
-    private Bundle mExtras;
+  private final String service;
+  private final String tag;
+  private final JobTrigger trigger;
+  private final RetryStrategy retryStrategy;
+  private final int lifetime;
+  private final boolean recurring;
+  private final int[] constraints;
+  private final boolean replaceCurrent;
+  private final Bundle extras;
 
-    private Job(Builder builder) {
-        mService = builder.mServiceClass != null ? builder.mServiceClass.getName() : null;
-        mExtras = builder.mExtras;
-        mTag = builder.mTag;
-        mTrigger = builder.mTrigger;
-        mRetryStrategy = builder.mRetryStrategy;
-        mLifetime = builder.mLifetime;
-        mRecurring = builder.mRecurring;
-        mConstraints = builder.mConstraints != null ? builder.mConstraints : new int[0];
-        mReplaceCurrent = builder.mReplaceCurrent;
+  private Job(@NonNull Builder builder) {
+    service = builder.serviceClassName;
+    extras = builder.extras == null ? null : new Bundle(builder.extras); // Make a copy
+    tag = builder.tag;
+    trigger = builder.trigger;
+    retryStrategy = builder.retryStrategy;
+    lifetime = builder.lifetime;
+    recurring = builder.recurring;
+    constraints = builder.constraints != null ? builder.constraints : new int[0];
+    replaceCurrent = builder.replaceCurrent;
+  }
+
+  /** {@inheritDoc} */
+  @NonNull
+  @Override
+  public int[] getConstraints() {
+    return constraints;
+  }
+
+  /** {@inheritDoc} */
+  @Nullable
+  @Override
+  public Bundle getExtras() {
+    return extras;
+  }
+
+  /** {@inheritDoc} */
+  @NonNull
+  @Override
+  public RetryStrategy getRetryStrategy() {
+    return retryStrategy;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean shouldReplaceCurrent() {
+    return replaceCurrent;
+  }
+
+  @Nullable
+  @Override
+  public TriggerReason getTriggerReason() {
+    return null;
+  }
+
+  /** {@inheritDoc} */
+  @NonNull
+  @Override
+  public String getTag() {
+    return tag;
+  }
+
+  /** {@inheritDoc} */
+  @NonNull
+  @Override
+  public JobTrigger getTrigger() {
+    return trigger;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public int getLifetime() {
+    return lifetime;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean isRecurring() {
+    return recurring;
+  }
+
+  /** {@inheritDoc} */
+  @NonNull
+  @Override
+  public String getService() {
+    return service;
+  }
+
+  /**
+   * A class that understands how to build a {@link Job}. Retrieved by calling {@link
+   * FirebaseJobDispatcher#newJobBuilder()}.
+   */
+  public static final class Builder implements JobParameters {
+    private final ValidationEnforcer validator;
+
+    private String serviceClassName;
+    private Bundle extras;
+    private String tag;
+    private JobTrigger trigger = Trigger.NOW;
+    private int lifetime = Lifetime.UNTIL_NEXT_BOOT;
+    private int[] constraints;
+
+    private RetryStrategy retryStrategy = RetryStrategy.DEFAULT_EXPONENTIAL;
+    private boolean replaceCurrent = false;
+    private boolean recurring = false;
+
+    Builder(@NonNull ValidationEnforcer validator) {
+      this.validator = validator;
+    }
+
+    Builder(@NonNull ValidationEnforcer validator, JobParameters job) {
+      this.validator = validator;
+
+      tag = job.getTag();
+      serviceClassName = job.getService();
+      trigger = job.getTrigger();
+      recurring = job.isRecurring();
+      lifetime = job.getLifetime();
+      constraints = job.getConstraints();
+      extras = job.getExtras();
+      retryStrategy = job.getRetryStrategy();
+    }
+
+    /** Adds the provided constraint to the current list of runtime constraints. */
+    @NonNull
+    public Builder addConstraint(@JobConstraint int constraint) {
+      // Create a new, longer constraints array
+      int[] newConstraints = new int[constraints == null ? 1 : constraints.length + 1];
+
+      if (constraints != null && constraints.length != 0) {
+        // Copy all the old values over
+        System.arraycopy(constraints, 0, newConstraints, 0, constraints.length);
+      }
+
+      // add the new value
+      newConstraints[newConstraints.length - 1] = constraint;
+      // update the pointer
+      constraints = newConstraints;
+
+      return this;
+    }
+
+    /** Sets whether this Job should replace pre-existing Jobs with the same tag. */
+    @NonNull
+    public Builder setReplaceCurrent(boolean replaceCurrent) {
+      this.replaceCurrent = replaceCurrent;
+
+      return this;
     }
 
     /**
-     * {@inheritDoc}
+     * Builds the Job, using the settings provided so far.
+     *
+     * @throws ValidationEnforcer.ValidationException
      */
     @NonNull
-    @Override
-    public int[] getConstraints() {
-        return mConstraints;
+    public Job build() {
+      validator.ensureValid(this);
+
+      return new Job(this);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Nullable
-    @Override
-    public Bundle getExtras() {
-        return mExtras;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @NonNull
-    @Override
-    public RetryStrategy getRetryStrategy() {
-        return mRetryStrategy;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean shouldReplaceCurrent() {
-        return mReplaceCurrent;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @NonNull
-    @Override
-    public String getTag() {
-        return mTag;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @NonNull
-    @Override
-    public JobTrigger getTrigger() {
-        return mTrigger;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getLifetime() {
-        return mLifetime;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isRecurring() {
-        return mRecurring;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @NonNull
     @Override
     public String getService() {
-        return mService;
+      return serviceClassName;
+    }
+
+    /** Sets the backing JobService class for the Job. See {@link #getService()}. */
+    @NonNull
+    public Builder setService(@NonNull Class<? extends JobService> serviceClass) {
+      serviceClassName = serviceClass == null ? null : serviceClass.getName();
+
+      return this;
     }
 
     /**
-     * A class that understands how to build a {@link Job}. Retrieved by calling
-     * {@link FirebaseJobDispatcher#newJobBuilder()}.
+     * Sets the backing JobService class name for the Job. See {@link #getService()}.
+     *
+     * <p>Should not be exposed, for internal use only.
      */
-    public final static class Builder implements JobParameters {
-        private final ValidationEnforcer mValidator;
+    @NonNull
+    Builder setServiceName(@NonNull String serviceClassName) {
+      this.serviceClassName = serviceClassName;
 
-        private Class<? extends JobService> mServiceClass;
-        private Bundle mExtras;
-        private String mTag;
-        private JobTrigger mTrigger = Trigger.NOW;
-        private int mLifetime = Lifetime.UNTIL_NEXT_BOOT;
-        private int[] mConstraints;
-
-        private RetryStrategy mRetryStrategy = RetryStrategy.DEFAULT_EXPONENTIAL;
-        private boolean mReplaceCurrent = false;
-        private boolean mRecurring = false;
-
-        Builder(ValidationEnforcer validator) {
-            mValidator = validator;
-        }
-
-        /**
-         * Adds the provided constraint to the current list of runtime constraints.
-         */
-        public Builder addConstraint(@JobConstraint int constraint) {
-            // Create a new, longer constraints array
-            int[] newConstraints = new int[mConstraints == null ? 1 : mConstraints.length + 1];
-
-            if (mConstraints != null && mConstraints.length != 0) {
-                // Copy all the old values over
-                System.arraycopy(mConstraints, 0, newConstraints, 0, mConstraints.length);
-            }
-
-            // add the new value
-            newConstraints[newConstraints.length - 1] = constraint;
-            // update the pointer
-            mConstraints = newConstraints;
-
-            return this;
-        }
-
-        /**
-         * Sets whether this Job should replace pre-existing Jobs with the same tag.
-         */
-        public Builder setReplaceCurrent(boolean replaceCurrent) {
-            mReplaceCurrent = replaceCurrent;
-
-            return this;
-        }
-
-        /**
-         * Builds the Job, using the settings provided so far.
-         *
-         * @throws ValidationEnforcer.ValidationException
-         */
-        public Job build() {
-            mValidator.ensureValid(this);
-
-            return new Job(this);
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @NonNull
-        @Override
-        public String getService() {
-            return mServiceClass.getName();
-        }
-
-        /**
-         * Sets the backing JobService class for the Job. See {@link #getService()}.
-         */
-        public Builder setService(Class<? extends JobService> serviceClass) {
-            mServiceClass = serviceClass;
-
-            return this;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @NonNull
-        @Override
-        public String getTag() {
-            return mTag;
-        }
-
-        /**
-         * Sets the unique String tag used to identify the Job. See {@link #getTag()}.
-         */
-        public Builder setTag(String tag) {
-            mTag = tag;
-
-            return this;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @NonNull
-        @Override
-        public JobTrigger getTrigger() {
-            return mTrigger;
-        }
-
-        /**
-         * Sets the Trigger used for the Job. See {@link #getTrigger()}.
-         */
-        public Builder setTrigger(JobTrigger trigger) {
-            mTrigger = trigger;
-
-            return this;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        @Lifetime.LifetimeConstant
-        public int getLifetime() {
-            return mLifetime;
-        }
-
-        /**
-         * Sets the Job's lifetime, or how long it should persist. See {@link #getLifetime()}.
-         */
-        public Builder setLifetime(@Lifetime.LifetimeConstant int lifetime) {
-            mLifetime = lifetime;
-
-            return this;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public boolean isRecurring() {
-            return mRecurring;
-        }
-
-        /**
-         * Sets whether the job should recur. The default is false.
-         */
-        public Builder setRecurring(boolean recurring) {
-            mRecurring = recurring;
-
-            return this;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        @JobConstraint
-        public int[] getConstraints() {
-            return mConstraints == null ? new int[]{} : mConstraints;
-        }
-
-        /**
-         * Sets the Job's runtime constraints. See {@link #getConstraints()}.
-         */
-        public Builder setConstraints(@JobConstraint int... constraints) {
-            mConstraints = constraints;
-
-            return this;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Nullable
-        @Override
-        public Bundle getExtras() {
-            return mExtras;
-        }
-
-        /**
-         * Sets the user-defined extras associated with the Job. See {@link #getExtras()}.
-         */
-        public Builder setExtras(Bundle extras) {
-            mExtras = extras;
-
-            return this;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @NonNull
-        @Override
-        public RetryStrategy getRetryStrategy() {
-            return mRetryStrategy;
-        }
-
-        /**
-         * Set the RetryStrategy used for the Job. See {@link #getRetryStrategy()}.
-         */
-        public Builder setRetryStrategy(RetryStrategy retryStrategy) {
-            mRetryStrategy = retryStrategy;
-
-            return this;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public boolean shouldReplaceCurrent() {
-            return mReplaceCurrent;
-        }
+      return this;
     }
+
+    /** {@inheritDoc} */
+    @NonNull
+    @Override
+    public String getTag() {
+      return tag;
+    }
+
+    /** Sets the unique String tag used to identify the Job. See {@link #getTag()}. */
+    @NonNull
+    public Builder setTag(@NonNull String tag) {
+      this.tag = tag;
+
+      return this;
+    }
+
+    /** {@inheritDoc} */
+    @NonNull
+    @Override
+    public JobTrigger getTrigger() {
+      return trigger;
+    }
+
+    /** Sets the Trigger used for the Job. See {@link #getTrigger()}. */
+    @NonNull
+    public Builder setTrigger(@NonNull JobTrigger trigger) {
+      this.trigger = trigger;
+
+      return this;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Lifetime.LifetimeConstant
+    public int getLifetime() {
+      return lifetime;
+    }
+
+    /** Sets the Job's lifetime, or how long it should persist. See {@link #getLifetime()}. */
+    @NonNull
+    public Builder setLifetime(@Lifetime.LifetimeConstant int lifetime) {
+      this.lifetime = lifetime;
+
+      return this;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean isRecurring() {
+      return recurring;
+    }
+
+    /** Sets whether the job should recur. The default is false. */
+    @NonNull
+    public Builder setRecurring(boolean recurring) {
+      this.recurring = recurring;
+
+      return this;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @NonNull
+    @JobConstraint
+    public int[] getConstraints() {
+      return constraints == null ? new int[] {} : constraints;
+    }
+
+    /** Sets the Job's runtime constraints. See {@link #getConstraints()}. */
+    @NonNull
+    public Builder setConstraints(@Nullable @JobConstraint int... constraints) {
+      this.constraints = constraints;
+
+      return this;
+    }
+
+    /** {@inheritDoc} */
+    @Nullable
+    @Override
+    public Bundle getExtras() {
+      return extras;
+    }
+
+    /** Sets the user-defined extras associated with the Job. See {@link #getExtras()}. */
+    @NonNull
+    public Builder setExtras(@Nullable Bundle extras) {
+      this.extras = extras;
+
+      return this;
+    }
+
+    /** {@inheritDoc} */
+    @NonNull
+    @Override
+    public RetryStrategy getRetryStrategy() {
+      return retryStrategy;
+    }
+
+    /** Set the RetryStrategy used for the Job. See {@link #getRetryStrategy()}. */
+    @NonNull
+    public Builder setRetryStrategy(@NonNull RetryStrategy retryStrategy) {
+      this.retryStrategy = retryStrategy;
+
+      return this;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean shouldReplaceCurrent() {
+      return replaceCurrent;
+    }
+
+    @Nullable
+    @Override
+    public TriggerReason getTriggerReason() {
+      return null;
+    }
+  }
 }
